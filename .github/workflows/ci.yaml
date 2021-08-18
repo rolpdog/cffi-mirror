@@ -29,7 +29,7 @@ jobs:
         CIBW_TEST_REQUIRES: pytest
         CIBW_TEST_COMMAND: pytest
         MACOSX_DEPLOYMENT_TARGET: '11.0'
-        SDKROOT: macosx11.1
+        SDKROOT: macosx11.3
       run: |
         /usr/bin/python3 -m cibuildwheel
         
