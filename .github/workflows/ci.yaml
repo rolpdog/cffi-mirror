@@ -21,7 +21,7 @@ jobs:
     - name: build wheel prereqs
       run: |
         pip3 install cibuildwheel --upgrade
-        brew uninstall --ignore-dependencies libffi
+        brew uninstall --ignore-dependencies libffi || true
 
     - name: build wheels
       env:
