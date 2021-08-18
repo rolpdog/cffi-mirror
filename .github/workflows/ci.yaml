@@ -14,13 +14,13 @@ jobs:
       run: |
         arch
         zsh -c 'echo hi mom from $(arch)'
-        python3 -V
+        /usr/bin/python3 -V
         pwd
         ls -la
 
     - name: build wheel prereqs
       run: |
-        pip3 install cibuildwheel --upgrade
+        /usr/bin/pip3 install cibuildwheel --upgrade
         brew uninstall --ignore-dependencies libffi || true
 
     - name: build wheels
@@ -31,7 +31,7 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET: '11.0'
         SDKROOT: macosx11.1
       run: |
-        python3 -m cibuildwheel
+        /usr/bin/python3 -m cibuildwheel
         
 
     - name: upload artifacts
