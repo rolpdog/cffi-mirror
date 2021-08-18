@@ -27,7 +27,7 @@ jobs:
       env:
         CIBW_BUILD: cp39-macosx_arm64 cp310-macosx_arm64
         CIBW_TEST_REQUIRES: pytest
-        CIBW_TEST_COMMAND: cd {project}; pytest ./c
+        CIBW_TEST_COMMAND: cd {project}; pytest 
         MACOSX_DEPLOYMENT_TARGET: '11.0'
         SDKROOT: macosx11.3
       run: |
