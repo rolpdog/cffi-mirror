@@ -3,14 +3,14 @@ defaults:
   run:
     shell: arch -arm64 bash --noprofile --norc -eo pipefail {0}
 jobs:
-  testit:
-    name: Test Job for M1 runner
+  macos-arm64-wheels:
+    name: Build/test MacOS arm64 wheels
     runs-on: [self-hosted, macOS]
     steps:
     - name: clone repo
       uses: actions/checkout@v2
 
-    - name: do stuff
+    - name: forensics
       run: |
         arch
         zsh -c 'echo hi mom from $(arch)'
@@ -18,4 +18,24 @@ jobs:
         pwd
         ls -la
 
+    - name: build wheel prereqs
+      run: |
+        pip3 install cibuildwheel --upgrade
+        brew uninstall --ignore-dependencies libffi
+
+    - name: build wheels
+      env:
+        CIBW_BUILD: cp39-macosx_arm64 cp310-macosx_arm64
+        CIBW_TEST_REQUIRES: pytest
+        CIBW_TEST_COMMAND: pytest
+        MACOSX_DEPLOYMENT_TARGET: '11.0'
+        SDKROOT: macosx11.1
+      run: |
+        python3 -m cibuildwheel
+        
+
+    - name: upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        path: wheelhouse
 
