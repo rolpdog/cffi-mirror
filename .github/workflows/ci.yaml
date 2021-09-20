@@ -29,29 +29,29 @@ jobs:
     strategy:
       matrix:
         include:  
-        - spec: cp27-manylinux_x86_64
-          cibw_version: cibuildwheel<2.0
-        - spec: cp36-manylinux_x86_64
-        - spec: cp37-manylinux_x86_64
-        - spec: cp38-manylinux_x86_64
-        - spec: cp39-manylinux_x86_64
+#        - spec: cp27-manylinux_x86_64
+#          cibw_version: cibuildwheel<2.0
+#        - spec: cp36-manylinux_x86_64
+#        - spec: cp37-manylinux_x86_64
+#        - spec: cp38-manylinux_x86_64
+#        - spec: cp39-manylinux_x86_64
         - spec: cp310-manylinux_x86_64
-        - spec: cp27-manylinux_i686
-          cibw_version: cibuildwheel<2.0
-        - spec: cp36-manylinux_i686
-        - spec: cp37-manylinux_i686
-        - spec: cp38-manylinux_i686
-        - spec: cp39-manylinux_i686
-        - spec: cp310-manylinux_i686
+#        - spec: cp27-manylinux_i686
+#          cibw_version: cibuildwheel<2.0
+#        - spec: cp36-manylinux_i686
+#        - spec: cp37-manylinux_i686
+#        - spec: cp38-manylinux_i686
+#        - spec: cp39-manylinux_i686
+#        - spec: cp310-manylinux_i686
     steps:
     - name: clone repo
       uses: actions/checkout@v2
 
-#    - name: Start SSH session
-#      uses: rolpdog/debug-via-ssh@main
-#      with:
-#        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-#        SSH_PASS: ${{ secrets.SSH_PASS }}
+    - name: Start SSH session
+      uses: rolpdog/debug-via-ssh@main
+      with:
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        SSH_PASS: ${{ secrets.SSH_PASS }}
 
     - name: Build/test wheels
       env:
