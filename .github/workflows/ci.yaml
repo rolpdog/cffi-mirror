@@ -1,28 +1,28 @@
 on: push
 
 jobs:
-  sdist:
-    name: Build sdist
-    runs-on: ubuntu-20.04
-    steps:
-    - name: clone repo
-      uses: actions/checkout@v2
-
-    - name: Install a python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.x
-
-    - name: Build sdist
-      run: |
-        rm -rf dist/
-        python -m pip install build
-        python -m build --sdist
-
-    - name: Upload sdist artifact
-      uses: actions/upload-artifact@v2
-      with:
-        path: dist
+#  sdist:
+#    name: Build sdist
+#    runs-on: ubuntu-20.04
+#    steps:
+#    - name: clone repo
+#      uses: actions/checkout@v2
+#
+#    - name: Install a python
+#      uses: actions/setup-python@v2
+#      with:
+#        python-version: 3.x
+#
+#    - name: Build sdist
+#      run: |
+#        rm -rf dist/
+#        python -m pip install build
+#        python -m build --sdist
+#
+#    - name: Upload sdist artifact
+#      uses: actions/upload-artifact@v2
+#      with:
+#        path: dist
 
   linux:
     runs-on: ubuntu-20.04
@@ -30,33 +30,49 @@ jobs:
       matrix:
         include:  
         - spec: cp27-manylinux_x86_64
-        - spec: cp36-manylinux_x86_64
-        - spec: cp37-manylinux_x86_64
-        - spec: cp38-manylinux_x86_64
-        - spec: cp39-manylinux_x86_64
-        - spec: cp310-manylinux_x86_64
-        - spec: cp27-manylinux_i686
-        - spec: cp36-manylinux_i686
-        - spec: cp37-manylinux_i686
-        - spec: cp38-manylinux_i686
-        - spec: cp39-manylinux_i686
-        - spec: cp310-manylinux_i686
+          cibw_version: cibuildwheel<2.0
+#        - spec: cp36-manylinux_x86_64
+#        - spec: cp37-manylinux_x86_64
+#        - spec: cp38-manylinux_x86_64
+#        - spec: cp39-manylinux_x86_64
+#        - spec: cp310-manylinux_x86_64
+#        - spec: cp27-manylinux_i686
+#          cibw_version: cibuildwheel<2.0
+#        - spec: cp36-manylinux_i686
+#        - spec: cp37-manylinux_i686
+#        - spec: cp38-manylinux_i686
+#        - spec: cp39-manylinux_i686
+#        - spec: cp310-manylinux_i686
     steps:
     - name: clone repo
       uses: actions/checkout@v2
 
-    - name: Install a python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.x
+    - name: Python forensics
+      run: |
+        python -V || echo 'NO PYTHON'
+
+#    - name: Install a python
+#      uses: actions/setup-python@v2
+#      with:
+#        python-version: 3.x
+#
+#    - name: Post-install python forensics
+#      run: |
+#        python -V || echo 'NO PYTHON'
+#
+#    - name: Start SSH session
+#      uses: rolpdog/debug-via-ssh@main
+#      with:
+#        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+#        SSH_PASS: ${{ secrets.SSH_PASS }}
 
     - name: Build/test wheels
       env:
         CIBW_BUILD: ${{ matrix.spec }}
       run: |
-        python -m pip install --upgrade pip
-        pip install "cibuildwheel$(cibuildwheel_version)"
-        CIBW_ARCHS_LINUX='auto' CIBW_MANYLINUX_X86_64_IMAGE=manylinux1 CIBW_MANYLINUX_I686_IMAGE=manylinux1 CIBW_BEFORE_BUILD='yum install -y texinfo && curl -L -O https://github.com/libffi/libffi/archive/v3.2.1.tar.gz && tar zxf v3.2.1.tar.gz && cd libffi-3.2.1 && ./autogen.sh && ./configure && make && make install && ldconfig' CIBW_TEST_REQUIRES='pytest' CIBW_TEST_COMMAND='python -m pytest {project}/c {project}/testing' cibuildwheel --output-dir dist .
+        python3 -m pip install --upgrade pip
+        python3 -m pip install --upgrade "${{ matrix.cibw_version || 'cibuildwheel' }}"
+        CIBW_ARCHS_LINUX='auto' CIBW_MANYLINUX_X86_64_IMAGE=manylinux1 CIBW_MANYLINUX_I686_IMAGE=manylinux1 CIBW_BEFORE_BUILD='yum install -y texinfo && curl -L -O https://github.com/libffi/libffi/archive/v3.2.1.tar.gz && tar zxf v3.2.1.tar.gz && cd libffi-3.2.1 && ./autogen.sh && ./configure && make && make install && ldconfig' CIBW_TEST_REQUIRES='pytest' CIBW_TEST_COMMAND='python -m pytest {project}/c {project}/testing' python3 -m cibuildwheel --output-dir dist .
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
@@ -64,42 +80,42 @@ jobs:
         path: dist
 
 
-  macos-arm64-wheels:
-    name: Build/test MacOS arm64 wheels
-    defaults:
-      run:
-        shell: arch -arm64 bash --noprofile --norc -eo pipefail {0}
-    runs-on: [self-hosted, macOS]
-    steps:
-    - name: clone repo
-      uses: actions/checkout@v2
-
-    - name: forensics
-      run: |
-        arch
-        zsh -c 'echo hi mom from $(arch)'
-        /usr/bin/python3 -V
-        pwd
-        ls -la
-
-    - name: build wheel prereqs
-      run: |
-        /usr/bin/pip3 install cibuildwheel --upgrade
-        brew uninstall --ignore-dependencies libffi || true
-
-    - name: build wheels
-      env:
-        CIBW_BUILD: cp38-macosx_arm64 cp39-macosx_arm64 cp310-macosx_arm64
-        CIBW_TEST_REQUIRES: pytest
-        CIBW_TEST_COMMAND: cd {project}; pytest 
-        MACOSX_DEPLOYMENT_TARGET: '11.0'
-        SDKROOT: macosx11.3
-      run: |
-        /usr/bin/python3 -m cibuildwheel
-        
-
-    - name: upload artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        path: wheelhouse
-
+#  macos-arm64-wheels:
+#    name: Build/test MacOS arm64 wheels
+#    defaults:
+#      run:
+#        shell: arch -arm64 bash --noprofile --norc -eo pipefail {0}
+#    runs-on: [self-hosted, macOS]
+#    steps:
+#    - name: clone repo
+#      uses: actions/checkout@v2
+#
+#    - name: forensics
+#      run: |
+#        arch
+#        zsh -c 'echo hi mom from $(arch)'
+#        /usr/bin/python3 -V
+#        pwd
+#        ls -la
+#
+#    - name: build wheel prereqs
+#      run: |
+#        /usr/bin/pip3 install cibuildwheel --upgrade
+#        brew uninstall --ignore-dependencies libffi || true
+#
+#    - name: build wheels
+#      env:
+#        CIBW_BUILD: cp38-macosx_arm64 cp39-macosx_arm64 cp310-macosx_arm64
+#        CIBW_TEST_REQUIRES: pytest
+#        CIBW_TEST_COMMAND: pip install pip --upgrade; cd {project}; pytest
+#        MACOSX_DEPLOYMENT_TARGET: '11.0'
+#        SDKROOT: macosx11.3
+#      run: |
+#        /usr/bin/python3 -m cibuildwheel
+#
+#
+#    - name: upload artifacts
+#      uses: actions/upload-artifact@v2
+#      with:
+#        path: wheelhouse
+#
