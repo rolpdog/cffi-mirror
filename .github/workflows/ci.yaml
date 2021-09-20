@@ -30,33 +30,37 @@ jobs:
       matrix:
         include:  
         - spec: cp27-manylinux_x86_64
-          cibw_version: cibuildwheel<2.0
-          manylinux_img: manylinux1
-#        - spec: cp36-manylinux_x86_64
-#        - spec: cp37-manylinux_x86_64
-#        - spec: cp38-manylinux_x86_64
-#        - spec: cp39-manylinux_x86_64
+          cibw_version: cibuildwheel<2.0  # py2.7 is not supported on CIBW 2.0+
+          manylinux_img: manylinux1  # build really old Pythons on manylinux1
+        - spec: cp36-manylinux_x86_64
+          manylinux_img: manylinux1  # build really old Pythons on manylinux1
+        - spec: cp37-manylinux_x86_64
+        - spec: cp38-manylinux_x86_64
+        - spec: cp39-manylinux_x86_64
         - spec: cp310-manylinux_x86_64
-#        - spec: cp27-manylinux_i686
-#          cibw_version: cibuildwheel<2.0
-#        - spec: cp36-manylinux_i686
-#        - spec: cp37-manylinux_i686
-#        - spec: cp38-manylinux_i686
-#        - spec: cp39-manylinux_i686
-#        - spec: cp310-manylinux_i686
+        - spec: cp27-manylinux_i686
+          cibw_version: cibuildwheel<2.0  # py2.7 is not supported on CIBW 2.0+
+          manylinux_img: manylinux1  # build really old Pythons on manylinux1
+        - spec: cp36-manylinux_i686
+          manylinux_img: manylinux1  # build really old Pythons on manylinux1
+        - spec: cp37-manylinux_i686
+        - spec: cp38-manylinux_i686
+        - spec: cp39-manylinux_i686
+        - spec: cp310-manylinux_i686
     steps:
     - name: clone repo
       uses: actions/checkout@v2
 
-    - name: Start SSH session
-      uses: rolpdog/debug-via-ssh@main
-      with:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-        SSH_PASS: ${{ secrets.SSH_PASS }}
+#    - name: Start SSH session
+#      uses: rolpdog/debug-via-ssh@main
+#      with:
+#        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+#        SSH_PASS: ${{ secrets.SSH_PASS }}
 
     - name: Build/test wheels
       env:
         CIBW_BUILD: ${{ matrix.spec }}
+        # TODO: update defaults to '' to fallthru once CIBW 2.1.3 ships: https://github.com/pypa/cibuildwheel/pull/829
         CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_img || 'manylinux2010' }}
         CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_img || 'manylinux2010' }}
       run: |
@@ -68,7 +72,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         path: dist
-
 
 #  macos-arm64-wheels:
 #    name: Build/test MacOS arm64 wheels
