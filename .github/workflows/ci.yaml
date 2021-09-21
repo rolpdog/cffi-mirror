@@ -67,13 +67,37 @@ jobs:
 #      with:
 #        path: dist
 
-## FIXME: merge to combo Mac job and remove?
-#  macos-arm64-wheels:
-#    name: Build/test MacOS arm64 wheels
+#
+#  macos:
+#    name: Build/test MacOS wheels
 #    defaults:
 #      run:
-#        shell: arch -arm64 bash --noprofile --norc -eo pipefail {0}
-#    runs-on: [self-hosted, macOS]
+#        shell: ${{ matrix.run_wrapper || 'bash --noprofile --norc -eo pipefail {0}' }}
+#    runs-on: ${{ matrix.runs_on || 'macos-10.15' }}
+#    strategy:
+#      matrix:
+#        include:
+#        # build for x86_64 under the default hosted macOS 10.x x86_64 runner
+#        - spec: cp27-macosx_x86_64
+#          cibw_version: cibuildwheel<2.0  # py2.7 is not supported on CIBW 2.0+
+#        - spec: cp36-macosx_x86_64
+#        - spec: cp37-macosx_x86_64
+#        - spec: cp38-macosx_x86_64
+#        - spec: cp39-macosx_x86_64
+#        - spec: cp310-macosx_x86_64
+#        # build for arm64 under a hacked macOS 12 self-hosted x86_64-on-arm64 runner until arm64 is fully supported
+#        # FIXME: ? cp38-macosx_arm64 requires special handling and fails some test_zdist tests under cibw 2.1.2, skip it (so Apple's XCode python3 won't have a wheel)
+#        - spec: cp39-macosx_arm64
+#          deployment_target: '11.0'
+#          runs_on: [self-hosted, macOS]
+#          run_wrapper: arch -arm64 bash --noprofile --norc -eo pipefail {0}
+#          sdkroot: macosx11.3
+#
+#        - spec: cp310-macosx_arm64
+#          deployment_target: '11.0'
+#          runs_on: [self-hosted, macOS]
+#          run_wrapper: arch -arm64 bash --noprofile --norc -eo pipefail {0}
+#          sdkroot: macosx11.3
 #    steps:
 #    - name: clone repo
 #      uses: actions/checkout@v2
@@ -88,17 +112,25 @@ jobs:
 #
 #    - name: build wheel prereqs
 #      run: |
-#        /usr/bin/pip3 install cibuildwheel --upgrade
+#        /usr/bin/pip3 install --user --upgrade "${{ matrix.cibw_version || 'cibuildwheel' }}"
 #        brew uninstall --ignore-dependencies libffi || true
 #
 #    - name: build wheels
 #      env:
-#        CIBW_BUILD: cp38-macosx_arm64 cp39-macosx_arm64 cp310-macosx_arm64
+#        CIBW_BUILD: ${{ matrix.spec }}
 #        CIBW_TEST_REQUIRES: pytest
 #        CIBW_TEST_COMMAND: pip install pip --upgrade; cd {project}; pytest
-#        MACOSX_DEPLOYMENT_TARGET: '11.0'
-#        SDKROOT: macosx11.3
 #      run: |
+#        if [[ -n "${{ matrix.deployment_target || '' }}" ]]
+#        then
+#            export MACOSX_DEPLOYMENT_TARGET="${{ matrix.deployment_target || '' }}"
+#        fi
+#
+#        if [[ -n "${{ matrix.sdkroot || '' }}" ]]
+#        then
+#            export SDKROOT="${{ matrix.sdkroot || '' }}"
+#        fi
+#
 #        /usr/bin/python3 -m cibuildwheel --output-dir dist
 #
 #
@@ -106,75 +138,60 @@ jobs:
 #      uses: actions/upload-artifact@v2
 #      with:
 #        path: dist
+#
 
-  macos:
-    name: Build/test MacOS wheels
-    defaults:
-      run:
-        shell: ${{ matrix.run_wrapper || 'bash --noprofile --norc -eo pipefail {0}' }}
-    runs-on: ${{ matrix.runs_on || 'macos-10.15' }}
+
+
+  windows:
+    name: Build/test Windows wheels
+    runs-on: windows-2016
     strategy:
       matrix:
         include:
-        # build for x86_64 under the default hosted macOS 10.x x86_64 runner
-#        - spec: cp27-macosx_x86_64
-#          cibw_version: cibuildwheel<2.0  # py2.7 is not supported on CIBW 2.0+
-#        - spec: cp36-macosx_x86_64
-#        - spec: cp37-macosx_x86_64
-#        - spec: cp38-macosx_x86_64
-#        - spec: cp39-macosx_x86_64
-#        - spec: cp310-macosx_x86_64
-        # build for arm64 under a hacked macOS 12 self-hosted x86_64-on-arm64 runner until arm64 is fully supported
-        # FIXME: ? cp38-macosx_arm64 requires special handling and fails some test_zdist tests under cibw 2.1.2, skip it (so Apple's XCode python3 won't have a wheel)
-        - spec: cp39-macosx_arm64
-          deployment_target: '11.0'
-          runs_on: [self-hosted, macOS]
-          run_wrapper: arch -arm64 bash --noprofile --norc -eo pipefail {0}
-          sdkroot: macosx11.3
-
-        - spec: cp310-macosx_arm64
-          deployment_target: '11.0'
-          runs_on: [self-hosted, macOS]
-          run_wrapper: arch -arm64 bash --noprofile --norc -eo pipefail {0}
-          sdkroot: macosx11.3
+        - spec: cp27-win_amd64
+          cibw_version: cibuildwheel==1.10  # last release with proper py2.7 Windows support
+        - spec: cp36-win_amd64
+        - spec: cp37-win_amd64
+        - spec: cp38-win_amd64
+        - spec: cp39-win_amd64
+        - spec: cp310-win_amd64
+        - spec: cp27-win32
+          cibw_version: cibuildwheel==1.10  # last release with proper py2.7 Windows support
+        - spec: cp36-win32
+        - spec: cp37-win32
+        - spec: cp38-win32
+        - spec: cp39-win32
+        - spec: cp310-win32
     steps:
     - name: clone repo
       uses: actions/checkout@v2
 
-    - name: forensics
+    # HACK: MS killed this SDK support package and removed downloads, as did chocolatey, install from a private archive
+    - name: Install Windows Python 2.7 SDK
       run: |
-        arch
-        zsh -c 'echo hi mom from $(arch)'
-        /usr/bin/python3 -V
-        pwd
-        ls -la
+        $msiPath = Join-Path ([IO.Path]::GetTempPath()) 'VCForPython27.msi'
+        [Net.WebClient]::new().DownloadFile('https://raw.githubusercontent.com/nitzmahone/VCPython27/master/VCForPython27.msi', $msiPath)
+        Start-Process -FilePath msiexec.exe -Wait -ArgumentList @(
+            '/i',
+            $msiPath,
+            '/qn',
+            '/norestart'
+        )
+      shell: powershell
+      if: ${{ contains(matrix.spec, 'cp27') }}
 
-    - name: build wheel prereqs
-      run: |
-        /usr/bin/pip3 install --user --upgrade "${{ matrix.cibw_version || 'cibuildwheel' }}"
-        brew uninstall --ignore-dependencies libffi || true
-
-    - name: build wheels
+    - name: Build Windows wheels
       env:
         CIBW_BUILD: ${{ matrix.spec }}
-        CIBW_TEST_REQUIRES: pytest
-        CIBW_TEST_COMMAND: pip install pip --upgrade; cd {project}; pytest
       run: |
-        if [[ -n "${{ matrix.deployment_target || '' }}" ]]
-        then
-            export MACOSX_DEPLOYMENT_TARGET="${{ matrix.deployment_target || '' }}"
-        fi
-
-        if [[ -n "${{ matrix.sdkroot || '' }}" ]]
-        then
-            export SDKROOT="${{ matrix.sdkroot || '' }}"
-        fi
-
-        /usr/bin/python3 -m cibuildwheel --output-dir dist
-
+        python -m pip install --upgrade pip
+        pip install "${{ matrix.cibw_version || 'cibuildwheel'}}"
+        # FIXME: /testing takes ~45min on Windows and has some failures...
+        # CIBW_TEST_REQUIRES=pytest CIBW_TEST_COMMAND='python -m pytest {project}/c {project}/testing' cibuildwheel --output-dir dist .
+        CIBW_TEST_REQUIRES=pytest CIBW_TEST_COMMAND='python -m pytest {project}/c' cibuildwheel --output-dir dist .
+      shell: bash
 
     - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
         path: dist
-
