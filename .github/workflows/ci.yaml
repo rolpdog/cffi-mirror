@@ -2,27 +2,22 @@ on: push
 
 jobs:
   sdist:
-    name: Build sdist
     runs-on: ubuntu-20.04
     steps:
     - name: clone repo
       uses: actions/checkout@v2
 
-    - name: Install a python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.x
-
-    - name: Build sdist
+    - name: build sdist
       run: |
         rm -rf dist/
         python -m pip install build
         python -m build --sdist
 
-    - name: Upload sdist artifact
+    - name: upload sdist artifact
       uses: actions/upload-artifact@v2
       with:
         path: dist
+        if-no-files-found: error
 
   linux:
     runs-on: ubuntu-20.04
@@ -51,10 +46,10 @@ jobs:
     - name: clone repo
       uses: actions/checkout@v2
 
-    - name: Build/test wheels
+    - name: build/test wheels
       env:
         CIBW_BUILD: ${{ matrix.spec }}
-        # TODO: update defaults to '' to fallthru once CIBW 2.1.3 ships: https://github.com/pypa/cibuildwheel/pull/829
+        # TODO: update default to '' once CIBW 2.1.3 ships: https://github.com/pypa/cibuildwheel/pull/829
         CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_img || 'manylinux2010' }}
         CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_img || 'manylinux2010' }}
       run: |
@@ -62,14 +57,14 @@ jobs:
         python -m pip install --upgrade "${{ matrix.cibw_version || 'cibuildwheel' }}"
         CIBW_ARCHS_LINUX='auto' CIBW_BEFORE_BUILD='yum install -y texinfo && curl -L -O https://github.com/libffi/libffi/archive/v3.2.1.tar.gz && tar zxf v3.2.1.tar.gz && cd libffi-3.2.1 && ./autogen.sh && ./configure && make && make install && ldconfig' CIBW_TEST_REQUIRES='pytest' CIBW_TEST_COMMAND='python -m pytest {project}/c {project}/testing' python -m cibuildwheel --output-dir dist .
 
-    - name: Upload artifacts
+    - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
         path: dist
+        if-no-files-found: error
 
 
   macos:
-    name: Build/test MacOS wheels
     defaults:
       run:
         shell: ${{ matrix.run_wrapper || 'bash --noprofile --norc -eo pipefail {0}' }}
@@ -102,20 +97,12 @@ jobs:
     - name: clone repo
       uses: actions/checkout@v2
 
-    - name: forensics
-      run: |
-        arch
-        zsh -c 'echo hi mom from $(arch)'
-        /usr/bin/python3 -V
-        pwd
-        ls -la
-
     - name: build wheel prereqs
       run: |
         /usr/bin/pip3 install --user --upgrade "${{ matrix.cibw_version || 'cibuildwheel' }}"
         brew uninstall --ignore-dependencies libffi || true
 
-    - name: build wheels
+    - name: build/test wheels
       env:
         CIBW_BUILD: ${{ matrix.spec }}
         CIBW_TEST_REQUIRES: pytest
@@ -133,15 +120,13 @@ jobs:
 
         /usr/bin/python3 -m cibuildwheel --output-dir dist
 
-
     - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
         path: dist
-
+        if-no-files-found: error
 
   windows:
-    name: Build/test Windows wheels
     runs-on: windows-2016
     strategy:
       matrix:
@@ -165,7 +150,7 @@ jobs:
       uses: actions/checkout@v2
 
     # HACK: MS killed this SDK support package and removed downloads, as did chocolatey, install from a private archive
-    - name: Install Windows Python 2.7 SDK
+    - name: install Windows Python 2.7 SDK
       run: |
         $msiPath = Join-Path ([IO.Path]::GetTempPath()) 'VCForPython27.msi'
         [Net.WebClient]::new().DownloadFile('https://raw.githubusercontent.com/nitzmahone/VCPython27/master/VCForPython27.msi', $msiPath)
@@ -178,7 +163,7 @@ jobs:
       shell: powershell
       if: ${{ contains(matrix.spec, 'cp27') }}
 
-    - name: Build Windows wheels
+    - name: build/test wheels
       env:
         CIBW_BUILD: ${{ matrix.spec }}
       run: |
@@ -193,3 +178,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         path: dist
+        if-no-files-found: error
