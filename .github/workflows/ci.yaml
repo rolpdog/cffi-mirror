@@ -64,7 +64,7 @@ jobs:
           curl -L -O https://github.com/libffi/libffi/archive/v3.4.2.tar.gz && \
           tar zxf v3.4.2.tar.gz && cd libffi-3.4.2 && \
           ./autogen.sh && \
-          ./configure --without-gcc-arch --disable-docs && \
+          ./configure --without-gcc-arch --disable-docs --with-pic --enable-shared=no --prefix /usr && \
           make && \
           make install
         # TODO: update default to '' once CIBW 2.1.3 ships: https://github.com/pypa/cibuildwheel/pull/829
