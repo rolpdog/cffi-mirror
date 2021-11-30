@@ -1,6 +1,14 @@
 import py
 import pytest
 
+try:
+    from packaging.tags import platform_tags
+    _platform_tags_cached = set(platform_tags())
+    _is_musl = any(t.startswith('musllinux') for t in _platform_tags_cached)
+except ImportError:
+    _platform_tags_cached = set()
+    _is_musl = False
+
 def _setup_path():
     import os, sys
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -1271,7 +1279,7 @@ def test_load_and_call_function():
 def test_read_variable():
     ## FIXME: this test assumes glibc specific behavior, it's not compliant with C standard
     ## https://bugs.pypy.org/issue1643
-    if not sys.platform.startswith("linux"):
+    if not sys.platform.startswith("linux") or _is_musl:
         py.test.skip("untested")
     BVoidP = new_pointer_type(new_void_type())
     ll = find_and_load_library('c')
@@ -1284,7 +1292,7 @@ def test_read_variable():
 def test_read_variable_as_unknown_length_array():
     ## FIXME: this test assumes glibc specific behavior, it's not compliant with C standard
     ## https://bugs.pypy.org/issue1643
-    if not sys.platform.startswith("linux"):
+    if not sys.platform.startswith("linux") or _is_musl:
         py.test.skip("untested")
     BCharP = new_pointer_type(new_primitive_type("char"))
     BArray = new_array_type(BCharP, None)
@@ -1296,7 +1304,7 @@ def test_read_variable_as_unknown_length_array():
 def test_write_variable():
     ## FIXME: this test assumes glibc specific behavior, it's not compliant with C standard
     ## https://bugs.pypy.org/issue1643
-    if not sys.platform.startswith("linux"):
+    if not sys.platform.startswith("linux") or _is_musl:
         py.test.skip("untested")
     BVoidP = new_pointer_type(new_void_type())
     ll = find_and_load_library('c')
