@@ -13,6 +13,12 @@ try:
 except ImportError:
     from io import StringIO
 
+try:
+    from packaging.tags import platform_tags
+    _platform_tags_cached = set(platform_tags())
+    _is_musl = any(t.startswith('musllinux') for t in _platform_tags_cached)
+except ImportError:
+    _is_musl = False
 
 lib_m = 'm'
 if sys.platform == 'win32':
@@ -20,6 +26,8 @@ if sys.platform == 'win32':
     import distutils.ccompiler
     if distutils.ccompiler.get_default_compiler() == 'msvc':
         lib_m = 'msvcrt'
+elif _is_musl:
+    lib_m = 'c'
 
 class TestFunction(object):
     Backend = CTypesBackend

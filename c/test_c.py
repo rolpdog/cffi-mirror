@@ -6,7 +6,6 @@ try:
     _platform_tags_cached = set(platform_tags())
     _is_musl = any(t.startswith('musllinux') for t in _platform_tags_cached)
 except ImportError:
-    _platform_tags_cached = set()
     _is_musl = False
 
 def _setup_path():
@@ -101,7 +100,8 @@ def test_all_rtld_symbols():
     if sys.platform.startswith("linux"):
         RTLD_NODELETE
         RTLD_NOLOAD
-        RTLD_DEEPBIND
+        if not _is_musl:
+            RTLD_DEEPBIND
 
 def test_new_primitive_type():
     py.test.raises(KeyError, new_primitive_type, "foo")

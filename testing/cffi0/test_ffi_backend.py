@@ -5,7 +5,6 @@ from testing.support import u
 from cffi import FFI
 import _cffi_backend
 
-
 class TestFFI(backend_tests.BackendTests,
               test_function.TestFunction,
               test_ownlib.TestOwnLib):
