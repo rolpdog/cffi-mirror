@@ -52,6 +52,7 @@ jobs:
 
     - name: build/test wheels
       env:
+        CFLAGS: -Dffi_call=cffistatic_ffi_call  # override name for ffi_call to break hard if we linked against someone else's libffi
         CIBW_ARCHS_LINUX: auto
         CIBW_BUILD: ${{ matrix.spec }}
         CIBW_BEFORE_BUILD: |
@@ -63,7 +64,7 @@ jobs:
           make && \
           make install && \
           ldconfig || true
-        # FIXME: how to ensure that we've actually statically-linked against the proper libffi build?
+        CIBW_ENVIRONMENT_PASS_LINUX: CFLAGS  # ensure that the build container can see our overridden build config
         CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_img || '' }}
         CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_img || '' }}
         CIBW_TEST_REQUIRES: pytest
