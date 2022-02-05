@@ -406,8 +406,9 @@ class Recompiler:
         else:
             prnt('  NULL,  /* no includes */')
         prnt('  %d,  /* num_types */' % (len(self.cffi_types),))
-        # set 'flags' to 1 in embedding mode, 0 otherwise
-        flags = int(self.ffi._embedding is not None)
+        flags = 0
+        if self._num_externpy:
+            flags |= 1     # set to mean that we use extern "Python"
         prnt('  %d,  /* flags */' % flags)
         prnt('};')
         prnt()
